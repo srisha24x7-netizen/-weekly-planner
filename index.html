@@ -1,116 +1,177 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#f6f1f8">
-<meta name="description" content="A simple weekly student planner">
-<link rel="manifest" href="manifest.webmanifest">
-<title>My Week</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My Week ♡</title>
+
 <style>
-:root{--bg:#f8f5f8;--card:#fff;--text:#29262b;--muted:#756f78;--line:#e5dfe7;--accent:#765b83;--accent2:#eee7f1}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:15px system-ui,-apple-system,Segoe UI,sans-serif}
-.app{max-width:760px;margin:auto;padding:18px 14px 34px}
-header{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:14px}
-h1{font-size:27px;margin:0 0 2px}p{margin:0;color:var(--muted)}
-button,input,textarea{font:inherit}button{border:1px solid var(--line);background:var(--card);color:var(--text);border-radius:11px;padding:10px 13px;min-height:44px}
-button.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
-.toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}.toolbar input{flex:1;min-width:160px}
-input,textarea{width:100%;border:1px solid var(--line);border-radius:11px;background:#fff;padding:10px;color:var(--text);outline:none}
-input:focus,textarea:focus{border-color:var(--accent)}textarea{min-height:76px;resize:vertical}
-.weeknav{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:12px 0}
-.weeknav strong{font-size:16px}.days{display:grid;grid-template-columns:repeat(2,1fr);gap:11px}
-.card{background:var(--card);border:1px solid var(--line);border-radius:17px;padding:13px}
-.card h2{font-size:17px;margin:0 0 10px}.label{font-size:12px;color:var(--muted);margin:10px 0 5px;display:block}
-.check{display:flex;gap:9px;align-items:center;margin:8px 0}.check input{width:19px;height:19px;accent-color:var(--accent)}
-.grid2{display:grid;grid-template-columns:1fr 1fr;gap:11px;margin-top:11px}
-.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:11px 0}.stat{background:var(--accent2);border-radius:13px;padding:11px;text-align:center}.stat b{display:block;font-size:20px}
-@media(max-width:540px){.days{grid-template-columns:1fr}.grid2{grid-template-columns:1fr}}
-.small{font-size:12px;color:var(--muted)}.hidden{display:none}
-</style>
-</head>
-<body>
-<div class="app" id="app">
-<header><div><h1>My Week</h1><p>Plan • study • rest</p></div><button id="install" class="primary hidden">Install app</button></header>
+*{box-sizing:border-box}
 
-<div class="toolbar">
-<input id="weekInput" type="date" aria-label="Choose week">
-<button id="today">This week</button>
-<button id="reset">Reset week</button>
-</div>
-
-<div class="stats">
-<div class="stat"><b id="doneCount">0</b><span class="small">tasks done</span></div>
-<div class="stat"><b id="totalCount">0</b><span class="small">tasks planned</span></div>
-<div class="stat"><b id="progress">0%</b><span class="small">progress</span></div>
-</div>
-
-<div class="weeknav"><button id="prev">‹ Previous</button><strong id="range"></strong><button id="next">Next ›</button></div>
-<div class="days" id="days"></div>
-
-<div class="grid2">
-<section class="card"><h2>🎯 Weekly priorities</h2><textarea id="priorities" placeholder="1.&#10;2.&#10;3."></textarea></section>
-<section class="card"><h2>📝 Notes</h2><textarea id="notes" placeholder="Things to remember..."></textarea></section>
-</div>
-
-<section class="card" style="margin-top:11px"><h2>🌱 Habits</h2>
-<div class="grid2">
-<label class="check"><input type="checkbox" data-habit="sleep"> Sleep on time</label>
-<label class="check"><input type="checkbox" data-habit="study"> Focused study</label>
-<label class="check"><input type="checkbox" data-habit="water"> Drink enough water</label>
-<label class="check"><input type="checkbox" data-habit="breaks"> Take proper breaks</label>
-</div></section>
-</div>
-
-<script>
-const KEY="my-weekly-planner-v1";
-const days=["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
-const state=JSON.parse(localStorage.getItem(KEY)||"{}");
-let currentMonday=state.currentMonday?new Date(state.currentMonday+"T00:00:00"):getMonday(new Date());
-let deferredPrompt=null;
-
-function getMonday(d){let x=new Date(d);x.setHours(0,0,0,0);let n=x.getDay();x.setDate(x.getDate()-(n===0?6:n-1));return x}
-function iso(d){return d.toISOString().slice(0,10)}
-function addDays(d,n){let x=new Date(d);x.setDate(x.getDate()+n);return x}
-function weekKey(){return iso(currentMonday)}
-function data(){if(!state.weeks)state.weeks={};if(!state.weeks[weekKey()])state.weeks[weekKey()]={days:days.map(()=>({task:"",study:"",test:"",done:false})),priorities:"",notes:"",habits:{}};return state.weeks[weekKey()]}
-function save(){state.currentMonday=weekKey();localStorage.setItem(KEY,JSON.stringify(state))}
-function render(){
- const w=data(), box=document.getElementById("days");
- document.getElementById("weekInput").value=weekKey();
- document.getElementById("range").textContent=fmt(currentMonday)+" – "+fmt(addDays(currentMonday,6));
- box.innerHTML="";
- w.days.forEach((d,i)=>{
-  const sec=document.createElement("section");sec.className="card";
-  sec.innerHTML=`<h2>${days[i]} <span class="small">${i<5?"SCHOOL":"WEEKEND"}</span></h2>
-  <label class="label">Top task</label><input data-field="task" placeholder="Most important thing">
-  <label class="label">Study / homework</label><textarea data-field="study" placeholder="Subjects, revision, homework..."></textarea>
-  <label class="check"><input type="checkbox" data-field="done"> Main task done</label>
-  <label class="label">Test / reminder</label><input data-field="test" placeholder="e.g. Maths test">`;
-  sec.querySelectorAll("[data-field]").forEach(el=>{let f=el.dataset.field;if(el.type==="checkbox")el.checked=!!d[f];else el.value=d[f]||"";el.addEventListener("input",()=>{d[f]=el.value;save();updateStats()});el.addEventListener("change",()=>{d[f]=el.type==="checkbox"?el.checked:el.value;save();updateStats()})});
-  box.appendChild(sec);
- });
- document.getElementById("priorities").value=w.priorities||"";
- document.getElementById("notes").value=w.notes||"";
- document.querySelectorAll("[data-habit]").forEach(c=>c.checked=!!w.habits[c.dataset.habit]);
- updateStats();
+body{
+margin:0;
+font-family:"Trebuchet MS",Arial,sans-serif;
+color:#4b4050;
+background:linear-gradient(135deg,#fff5fa,#f5f0ff,#f0faf6);
+padding:15px;
 }
-function fmt(d){return d.toLocaleDateString(undefined,{day:"numeric",month:"short"})}
-function updateStats(){let w=data(),total=w.days.filter(x=>x.task.trim()).length,done=w.days.filter(x=>x.done).length;document.getElementById("doneCount").textContent=done;document.getElementById("totalCount").textContent=total;document.getElementById("progress").textContent=(total?Math.round(done/total*100):0)+"%"}
-document.getElementById("prev").onclick=()=>{currentMonday=addDays(currentMonday,-7);render();save()}
-document.getElementById("next").onclick=()=>{currentMonday=addDays(currentMonday,7);render();save()}
-document.getElementById("today").onclick=()=>{currentMonday=getMonday(new Date());render();save()}
-document.getElementById("weekInput").onchange=e=>{let d=new Date(e.target.value+"T00:00:00");if(!isNaN(d)){currentMonday=getMonday(d);render();save()}}
-document.getElementById("reset").onclick=()=>{if(confirm("Clear everything for this week?")){state.weeks[weekKey()]={days:days.map(()=>({task:"",study:"",test:"",done:false})),priorities:"",notes:"",habits:{}};save();render()}}
-document.getElementById("priorities").oninput=e=>{data().priorities=e.target.value;save()}
-document.getElementById("notes").oninput=e=>{data().notes=e.target.value;save()}
-document.querySelectorAll("[data-habit]").forEach(c=>c.onchange=()=>{data().habits[c.dataset.habit]=c.checked;save()});
 
-window.addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredPrompt=e;document.getElementById("install").classList.remove("hidden")});
-document.getElementById("install").onclick=async()=>{if(!deferredPrompt)return;deferredPrompt.prompt();deferredPrompt=null;document.getElementById("install").classList.add("hidden")};
+.container{
+max-width:1200px;
+margin:auto;
+}
 
-if("serviceWorker" in navigator) window.addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));
-render();
-</script>
-</body>
-</html>
+.header{
+background:#ffffffdd;
+border:1px solid #eadde7;
+border-radius:25px;
+padding:18px;
+margin-bottom:14px;
+box-shadow:0 6px 25px #80608018;
+}
+
+h1{
+margin:0;
+font-size:30px;
+}
+
+.subtitle{
+color:#918390;
+font-size:13px;
+margin-top:4px;
+}
+
+.week-buttons{
+display:flex;
+align-items:center;
+gap:7px;
+margin-top:12px;
+}
+
+button{
+border:1px solid #eadde7;
+background:white;
+border-radius:12px;
+padding:8px 12px;
+color:#4b4050;
+font-weight:bold;
+}
+
+#weekName{
+flex:1;
+text-align:center;
+}
+
+.days{
+display:grid;
+grid-template-columns:repeat(7,1fr);
+gap:8px;
+overflow-x:auto;
+}
+
+.day{
+min-width:145px;
+padding:11px;
+border-radius:20px;
+background:white;
+border:1px solid #eadde7;
+box-shadow:0 4px 15px #80608010;
+}
+
+.day:nth-child(1){background:linear-gradient(#ffddea,#fff)}
+.day:nth-child(2){background:linear-gradient(#e9ddff,#fff)}
+.day:nth-child(3){background:linear-gradient(#d9f5e9,#fff)}
+.day:nth-child(4){background:linear-gradient(#fff0ba,#fff)}
+.day:nth-child(5){background:linear-gradient(#dceeff,#fff)}
+.day:nth-child(6){background:linear-gradient(#ffe1d1,#fff)}
+.day:nth-child(7){background:linear-gradient(#e9ddff,#fff)}
+
+.day-title{
+font-weight:bold;
+font-size:15px;
+margin-bottom:8px;
+}
+
+.date{
+font-size:11px;
+color:#958895;
+}
+
+label{
+display:block;
+font-size:10px;
+color:#887b88;
+margin:8px 2px 3px;
+}
+
+input,textarea{
+width:100%;
+border:1px solid #eadfe7;
+border-radius:10px;
+padding:7px;
+font-family:inherit;
+font-size:11px;
+background:#ffffffc9;
+color:#4b4050;
+}
+
+textarea{
+resize:vertical;
+min-height:50px;
+}
+
+.complete{
+margin-top:8px;
+font-size:11px;
+}
+
+.complete input{
+width:auto;
+}
+
+.bottom{
+display:grid;
+grid-template-columns:1.2fr 1fr 1fr;
+gap:12px;
+margin-top:12px;
+}
+
+.card{
+background:#ffffffdf;
+border:1px solid #eadde7;
+border-radius:20px;
+padding:14px;
+box-shadow:0 4px 15px #80608010;
+}
+
+.card h2{
+font-size:15px;
+margin:0 0 10px;
+}
+
+.priority{
+display:grid;
+grid-template-columns:repeat(3,1fr);
+gap:7px;
+}
+
+.priority div{
+background:white;
+border:1px solid #eadde7;
+border-radius:12px;
+padding:7px;
+}
+
+.priority b{
+font-size:10px;
+}
+
+.habit-head,
+.habit{
+display:grid;
+grid-template-columns:1fr repeat(7,20px);
+gap:4px;
+align-items:center;
+}
+
+.habit-head{
