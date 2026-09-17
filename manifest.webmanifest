@@ -1,0 +1,8 @@
+{
+  "name": "My Week - Digital Planner",
+  "short_name": "My Week",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#f8f5f8",
+  "theme_color": "#f6f1f8"
+}
