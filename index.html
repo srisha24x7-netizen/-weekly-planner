@@ -175,3 +175,507 @@ align-items:center;
 }
 
 .habit-head{
+font-size:9px;
+color:#988b96;
+text-align:center;
+margin-bottom:5px;
+}
+
+.habit{
+font-size:10px;
+margin:7px 0;
+}
+
+.habit input{
+width:16px;
+height:16px;
+}
+
+.moods{
+display:flex;
+gap:8px;
+font-size:22px;
+cursor:pointer;
+margin-bottom:10px;
+}
+
+.quote{
+margin-top:10px;
+padding:10px;
+border-radius:13px;
+background:linear-gradient(135deg,#fff0f6,#f0eaff);
+font-size:12px;
+}
+
+.progress{
+height:9px;
+background:#eee5eb;
+border-radius:20px;
+overflow:hidden;
+margin-top:6px;
+}
+
+#bar{
+height:100%;
+width:0%;
+background:linear-gradient(90deg,#f4b7d0,#bca7f4,#9bd8bd);
+}
+
+footer{
+text-align:center;
+font-size:10px;
+color:#958895;
+padding:12px;
+}
+
+@media(max-width:800px){
+body{padding:8px}
+
+h1{font-size:25px}
+
+.days{
+grid-template-columns:repeat(7,145px);
+}
+
+.bottom{
+grid-template-columns:1fr;
+}
+
+.priority{
+grid-template-columns:1fr;
+}
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<div class="header">
+<h1>My Week ♡</h1>
+<div class="subtitle">
+little plans • big progress • one week at a time ✿
+</div>
+
+<div class="week-buttons">
+<button onclick="changeWeek(-1)">‹</button>
+<div id="weekName"></div>
+<button onclick="changeWeek(1)">›</button>
+<button onclick="goToday()">Today</button>
+</div>
+</div>
+
+
+<div class="days" id="days"></div>
+
+
+<div class="bottom">
+
+<div class="card">
+<h2>♡ Weekly Priorities</h2>
+
+<div class="priority">
+<div>
+<b>01</b>
+<input id="p1" placeholder="Most important...">
+</div>
+
+<div>
+<b>02</b>
+<input id="p2" placeholder="Also important...">
+</div>
+
+<div>
+<b>03</b>
+<input id="p3" placeholder="If I can...">
+</div>
+</div>
+
+<label>Brain dump / Notes</label>
+<textarea id="notes" placeholder="Anything you don't want to forget..."></textarea>
+</div>
+
+
+<div class="card">
+<h2>✿ Habit Tracker</h2>
+
+<div class="habit-head">
+<span></span>
+<span>M</span><span>T</span><span>W</span>
+<span>T</span><span>F</span><span>S</span><span>S</span>
+</div>
+
+<div id="habits"></div>
+</div>
+
+
+<div class="card">
+<h2>☁ Weekly Mood</h2>
+
+<div class="moods">
+<span onclick="setMood('😊')">😊</span>
+<span onclick="setMood('🥰')">🥰</span>
+<span onclick="setMood('😌')">😌</span>
+<span onclick="setMood('😐')">😐</span>
+<span onclick="setMood('😵')">😵</span>
+</div>
+
+<label>One thing I'm proud of ♡</label>
+<textarea id="proud" placeholder="Even something tiny counts..."></textarea>
+
+<div class="quote">
+“Small steps still move you forward.” ✨
+</div>
+
+<label>Weekly completion</label>
+<div class="progress">
+<div id="bar"></div>
+</div>
+
+<div id="progressText" class="subtitle"></div>
+
+</div>
+
+</div>
+
+<footer>
+Saved automatically on this device ♡
+</footer>
+
+</div>
+
+
+<script>
+
+const STORAGE="cutePlanner";
+
+let current=new Date();
+
+function monday(date){
+
+let d=new Date(date);
+let day=d.getDay();
+
+let difference=day===0 ? -6 : 1-day;
+
+d.setDate(d.getDate()+difference);
+
+return d;
+}
+
+current=monday(current);
+
+
+function getWeek(){
+
+let key=current.toISOString().slice(0,10);
+
+let data=JSON.parse(localStorage.getItem(STORAGE)||"{}");
+
+if(!data[key]){
+
+data[key]={
+days:Array.from({length:7},()=>({
+task:"",
+study:"",
+test:"",
+notes:"",
+done:false
+})),
+
+habits:{
+sleep:Array(7).fill(false),
+study:Array(7).fill(false),
+water:Array(7).fill(false),
+breaks:Array(7).fill(false)
+},
+
+priorities:["","",""],
+notes:"",
+mood:"",
+proud:""
+};
+
+localStorage.setItem(STORAGE,JSON.stringify(data));
+}
+
+return data[key];
+}
+
+
+function saveWeek(data){
+
+let all=JSON.parse(localStorage.getItem(STORAGE)||"{}");
+
+let key=current.toISOString().slice(0,10);
+
+all[key]=data;
+
+localStorage.setItem(STORAGE,JSON.stringify(all));
+
+updateProgress();
+}
+
+
+function render(){
+
+let data=getWeek();
+
+let days=["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
+
+let dayBox=document.getElementById("days");
+
+dayBox.innerHTML="";
+
+
+days.forEach((name,i)=>{
+
+let date=new Date(current);
+
+date.setDate(date.getDate()+i);
+
+dayBox.innerHTML+=`
+
+<div class="day">
+
+<div class="day-title">
+${name}
+<span class="date">
+${date.getDate()}/${date.getMonth()+1}
+</span>
+</div>
+
+<label>Top task</label>
+
+<input
+value="${escapeHTML(data.days[i].task)}"
+oninput="updateDay(${i},'task',this.value)"
+placeholder="✎ something important">
+
+
+<label>Study / Homework</label>
+
+<input
+value="${escapeHTML(data.days[i].study)}"
+oninput="updateDay(${i},'study',this.value)"
+placeholder="What will I study?">
+
+
+<label>Test / Reminder</label>
+
+<input
+value="${escapeHTML(data.days[i].test)}"
+oninput="updateDay(${i},'test',this.value)"
+placeholder="Don't forget...">
+
+
+<label>Little notes</label>
+
+<textarea
+oninput="updateDay(${i},'notes',this.value)"
+placeholder="♡">${escapeHTML(data.days[i].notes)}</textarea>
+
+
+<div class="complete">
+
+<input
+type="checkbox"
+${data.days[i].done?"checked":""}
+onchange="updateDay(${i},'done',this.checked)">
+
+Day complete ✓
+
+</div>
+
+</div>
+`;
+
+});
+
+
+document.getElementById("p1").value=data.priorities[0];
+document.getElementById("p2").value=data.priorities[1];
+document.getElementById("p3").value=data.priorities[2];
+
+document.getElementById("notes").value=data.notes;
+document.getElementById("proud").value=data.proud;
+
+
+document.getElementById("p1").oninput=()=>updatePriority(0);
+document.getElementById("p2").oninput=()=>updatePriority(1);
+document.getElementById("p3").oninput=()=>updatePriority(2);
+
+document.getElementById("notes").oninput=()=>{
+
+data.notes=document.getElementById("notes").value;
+saveWeek(data);
+
+};
+
+document.getElementById("proud").oninput=()=>{
+
+data.proud=document.getElementById("proud").value;
+saveWeek(data);
+
+};
+
+
+renderHabits(data);
+
+document.getElementById("weekName").textContent=
+current.toLocaleDateString(undefined,{
+month:"short",
+day:"numeric"
+})+" week";
+
+updateProgress();
+
+}
+
+
+function updateDay(i,field,value){
+
+let data=getWeek();
+
+data.days[i][field]=value;
+
+saveWeek(data);
+
+}
+
+
+function updatePriority(i){
+
+let data=getWeek();
+
+data.priorities[i]=document.getElementById("p"+(i+1)).value;
+
+saveWeek(data);
+
+}
+
+
+function renderHabits(data){
+
+let names=[
+["Sleep on time","sleep"],
+["Focused study","study"],
+["Water","water"],
+["Breaks","breaks"]
+];
+
+let box=document.getElementById("habits");
+
+box.innerHTML="";
+
+names.forEach(item=>{
+
+let row=document.createElement("div");
+
+row.className="habit";
+
+row.innerHTML="<span>"+item[0]+"</span>";
+
+for(let i=0;i<7;i++){
+
+let checkbox=document.createElement("input");
+
+checkbox.type="checkbox";
+
+checkbox.checked=data.habits[item[1]][i];
+
+checkbox.onchange=()=>{
+
+data.habits[item[1]][i]=checkbox.checked;
+
+saveWeek(data);
+
+};
+
+row.appendChild(checkbox);
+
+}
+
+box.appendChild(row);
+
+});
+
+}
+
+
+function setMood(mood){
+
+let data=getWeek();
+
+data.mood=mood;
+
+saveWeek(data);
+
+}
+
+
+function updateProgress(){
+
+let data=getWeek();
+
+let completed=data.days.filter(d=>d.done).length;
+
+let habitTotal=0;
+
+Object.values(data.habits).forEach(list=>{
+
+habitTotal+=list.filter(Boolean).length;
+
+});
+
+let total=completed+habitTotal;
+
+let max=35;
+
+let percentage=Math.round(total/max*100);
+
+document.getElementById("bar").style.width=percentage+"%";
+
+document.getElementById("progressText").textContent=
+percentage+"% complete • "+completed+"/7 days finished";
+
+}
+
+
+function changeWeek(amount){
+
+current.setDate(current.getDate()+amount*7);
+
+render();
+
+}
+
+
+function goToday(){
+
+current=monday(new Date());
+
+render();
+
+}
+
+
+function escapeHTML(text){
+
+return String(text||"")
+.replace(/&/g,"&amp;")
+.replace(/</g,"&lt;")
+.replace(/>/g,"&gt;")
+.replace(/"/g,"&quot;")
+.replace(/'/g,"&#039;");
+
+}
+
+
+render();
+
+</script>
+
+</body>
+                                                                          </html>
